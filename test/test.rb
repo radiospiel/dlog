@@ -4,11 +4,7 @@ Dir.chdir(DIRNAME)
 
 #
 # initialize the gem
-require "rubygems"
 require "../init"
-
-class X
-end
 
 dlog "HEY"
 rlog "HEY"

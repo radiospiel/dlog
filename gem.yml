@@ -1,8 +1,10 @@
-gem:
-  description: {d,r}log
-  url: http://github.com/pboy/dlog  
-  author: pboy
-  email: eno-pboy@open-lab.org  
-  ignore_pattern:
-    - "tmp/*"
-    - "**/.*"
+version: "0.1"
+summary: "{d,r}log"
+description: |
+  A logging library mainly for development purposes.
+homepage: http://github.com/pboy/dlog  
+author: pboy
+email: eno-pboy@open-lab.org  
+# ignore_pattern:
+#   - "tmp/*"
+#   - "**/.*"

@@ -1,3 +1,5 @@
+load "#{File.dirname __FILE__}/vex/gem.rake"
+
 task :default => :test
 
 task :test do
