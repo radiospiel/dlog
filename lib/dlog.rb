@@ -52,7 +52,7 @@ module Dlog
     # and msg for each log. Bear in mind that time is a Time and msg is an
     # Object that user passed and it could not be a String. 
     def self.call(severity, time, progname, msg)
-      msg
+      "#{msg}\n"
     end
   end
   
@@ -96,52 +96,49 @@ module Dlog
 
   # -- dlog modi ------------------------------------------------------
   
-  #
-  # set release mode.
-  def self.release!
-    @release = true
-  end
+  @@mode = :debug
+  
+  def self.release!; set_mode :release, &block; end
+  def self.debug!; set_mode :debug, &block; end
+  def self.quiet!; set_mode :quiet, &block; end
 
-  #
-  # Is release mode active?
-  def self.release?
-    @release
-  end
-      
-  #
-  # set debug mode
-  def self.debug!
-    @release = false
-  end
+  def self.release?; @@mode == :release; end
+  def self.debug?; @@mode == :debug; end
+  def self.quiet?; @@mode == :quiet; end
 
-  #
-  # is debug mode active?
-  def self.debug?
-    !@release
-  end
-
-  #
-  # be quiet
-  def self.quiet!
-    @quiet = true
-  end
-
-  #
-  # should we be quiet?
-  def self.quiet?
-    @quiet
+  def set_mode(mode, &block)
+    if !block_given?
+      old = mode
+    else
+      old, @@mode = @@mode, mode
+      yield
+    end
+  ensure
+    @@mode = old
   end
 end
 
 class Object
   def rlog(*args)
-    return if Dlog.quiet? || Dlog.debug?
+    return if Dlog.quiet?
     Dlog.log self, args
   end
   
   def dlog(*args)
-    return if Dlog.quiet?
+    return if Dlog.quiet? || Dlog.release?
     Dlog.log self, args
+  end
+  
+  def benchmark(*args, &block)
+    start = Time.now
+    r = yield
+    args.push ": %3d msecs" % (1000 * (Time.now - start))
+    rlog *args
+    r
+  rescue
+    args.push ": exception raised after #{"%3d msecs" % (1000 * (Time.now - start)) }"
+    rlog *args
+    raise
   end
   
   private
