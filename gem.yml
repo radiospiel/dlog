@@ -1,0 +1,8 @@
+gem:
+  description: {d,r}log
+  url: http://github.com/pboy/dlog  
+  author: pboy
+  email: eno-pboy@open-lab.org  
+  ignore_pattern:
+    - "tmp/*"
+    - "**/.*"

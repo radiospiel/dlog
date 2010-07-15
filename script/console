@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+require "irb"
+$: << "#{File.dirname(__FILE__)}/../lib"
+require "dlog"
+IRB.start
