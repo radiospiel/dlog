@@ -98,15 +98,15 @@ module Dlog
   
   @@mode = :debug
   
-  def self.release!; set_mode :release, &block; end
-  def self.debug!; set_mode :debug, &block; end
-  def self.quiet!; set_mode :quiet, &block; end
+  def self.release!(&block); set_mode :release, &block; end
+  def self.debug!(&block); set_mode :debug, &block; end
+  def self.quiet!(&block); set_mode :quiet, &block; end
 
   def self.release?; @@mode == :release; end
   def self.debug?; @@mode == :debug; end
   def self.quiet?; @@mode == :quiet; end
 
-  def set_mode(mode, &block)
+  def self.set_mode(mode, &block)
     if !block_given?
       old = mode
     else
