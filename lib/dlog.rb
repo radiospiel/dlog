@@ -24,6 +24,12 @@ module Dlog
       :info
     end
 
+    options = if args.last.is_a?(Hash)
+      args.pop
+    else
+      {}
+    end
+    
     msg = ""
     was_string = true
     args.map do |s|
@@ -31,7 +37,8 @@ module Dlog
       msg += ((was_string = s.is_a?(String)) ? s : s.inspect)
     end
 
-    msg = "#{release? ? rlog_caller : dlog_caller} #{msg}"
+    source = options[:source] || caller[1]
+    msg = "#{release? ? rlog_caller(source) : dlog_caller(source)} #{msg}"
 
     logger = context.send(:dlogger) || self.logger
     logger.send severity, msg
@@ -71,10 +78,15 @@ module Dlog
   
   #
   # get a caller description, for release mode 
-  def self.rlog_caller
-    if caller[2] =~ /^(.*):(\d+)/
+  def self.rlog_caller(source)
+    if source =~ /^(.*):(\d+)/
       file, line = $1, $2
-      "[" + File.basename(file).sub(/\.[^\.]*$/, "") + "]"
+      file, line = $1, $2
+      if file == "(irb)"
+        "[irb]:"
+      else
+        "[" + File.basename(file).sub(/\.[^\.]*$/, "") + "]:"
+      end
     else
       "[log]"
     end
@@ -82,17 +94,21 @@ module Dlog
 
   #
   # get a caller description, for debug mode 
-  def self.dlog_caller
-    if caller[2] =~ /^(.*):(\d+)/
+  def self.dlog_caller(source)
+    if source =~ /^(.*):(\d+)/
       file, line = $1, $2
-      file = File.expand_path(file)
+      if file == "(irb)"
+        "[irb]:"
+      else
+        file = File.expand_path(file)
 
-      file.gsub!(ROOT, ".") or
-      file.gsub!(HOME, "~/")
+        file.gsub!(ROOT, ".") or
+        file.gsub!(HOME, "~/")
 
-      "#{file}(#{line}):"
+        "#{file}(#{line}):"
+      end
     else
-      "<dlog>:"
+      "[dlog]:"
     end
   end
 
@@ -146,10 +162,12 @@ class Object
     start = Time.now
     r = yield
     args.push ": %3d msecs" % (1000 * (Time.now - start))
+    args.push :source => caller[0]
     rlog *args
     r
   rescue
     args.push ": exception raised after #{"%3d msecs" % (1000 * (Time.now - start)) }"
+    args.push :source => caller[0]
     rlog *args
     raise
   end
