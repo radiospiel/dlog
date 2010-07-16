@@ -31,12 +31,25 @@ module Dlog
       msg += ((was_string = s.is_a?(String)) ? s : s.inspect)
     end
 
-    msg = "#{Dlog.release? ? rlog_caller : dlog_caller} #{msg}"
+    msg = "#{release? ? rlog_caller : dlog_caller} #{msg}"
 
-    logger = context.send(:dlogger) || Dlog.logger
+    logger = context.send(:dlogger) || self.logger
     logger.send severity, msg
-  end
 
+    if irb? && !log_to_stderr?
+      STDERR.puts msg
+    end
+  end
+  
+  def self.irb?
+    caller.detect do |s| s =~ /irb\/workspace.rb/ end
+  end
+  
+  def self.log_to_stderr?
+    logdev = logger.instance_variable_get("@logdev")
+    logdev.dev == STDERR if logdev.respond_to?(:dev)
+  end
+  
   # Logging formatter
   module Formatter
     # formatter#call is invoked with 4 arguments: severity, time, progname
