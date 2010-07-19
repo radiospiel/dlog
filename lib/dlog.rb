@@ -17,17 +17,11 @@ module Dlog
     end
   end
   
-  def self.log(context, args)
+  def self.log(context, args, options = {})
     severity = if args.first.is_a?(Symbol)
       args.shift
     else
       :info
-    end
-
-    options = if args.last.is_a?(Hash)
-      args.pop
-    else
-      {}
     end
     
     msg = ""
@@ -159,10 +153,15 @@ class Object
   end
   
   def benchmark(*args, &block)
+    if Dlog.quiet?
+      return yield
+    end
+    
     start = Time.now
     r = yield
+    
     args.push ": %3d msecs" % (1000 * (Time.now - start))
-    args.push :source => caller[0]
+    Dlog.log self, args, :source => caller[0]
     rlog *args
     r
   rescue
