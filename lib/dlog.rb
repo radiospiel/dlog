@@ -1,6 +1,35 @@
 require "logger"
 
 module Dlog
+  module Color
+    extend self
+    
+    def color(id)
+      "\e[#{id}m"
+    end
+
+    RED = color 31
+    GREEN = color 32
+    YELLOW = color 33
+    BLUE = color 34
+    MAGENTA = color 35
+    CYAN = color 36
+    DARK_GREY = color "1;30"
+    LIGHT_RED = color "1;31"
+    LIGHT_GREEN = color "1;32"
+    LIGHT_YELLOW = color "1;33"
+    LIGHT_BLUE = color "1;34"
+    LIGHT_MAGENTA = color "1;35"
+    LIGHT_CYAN = color "1;36"
+    
+    CLEAR = color 0
+    
+    def error(msg);  "#{LIGHT_RED}#{msg}#{CLEAR}"; end
+    def warn(msg);   "#{LIGHT_YELLOW}#{msg}#{CLEAR}"; end
+    def info(msg);   "#{GREEN}#{msg}#{CLEAR}"; end
+    def debug(msg);  msg; end
+  end
+  
   #
   # The logger device.
   def self.logger=(logger)
@@ -17,13 +46,7 @@ module Dlog
     end
   end
   
-  def self.log(context, args, options = {})
-    severity = if args.first.is_a?(Symbol)
-      args.shift
-    else
-      :info
-    end
-    
+  def self.log(severity, args, source_offset = 1)
     msg = ""
     was_string = true
     args.map do |s|
@@ -31,19 +54,22 @@ module Dlog
       msg += ((was_string = s.is_a?(String)) ? s : s.inspect)
     end
 
-    source = options[:source] || caller[1]
+    source = caller[source_offset]
     msg = "#{release? ? rlog_caller(source) : dlog_caller(source)} #{msg}"
-
-    logger = context.send(:dlogger) || self.logger
+    msg = Color.send severity, msg
+    
+    logger = self.logger
     logger.send severity, msg
 
     if irb? && !log_to_stderr?
       STDERR.puts msg
     end
+    
+    args.first
   end
   
   def self.irb?
-    caller.detect do |s| s =~ /irb\/workspace.rb/ end
+    caller.detect do |s| s =~ /irb\/workspace.rb/ end != nil
   end
   
   def self.log_to_stderr?
@@ -139,17 +165,54 @@ module Dlog
   ensure
     @@mode = old
   end
+
+  def self.error(*args)
+    log :error, args
+  end
+
+  def self.warn(*args)
+    log :warn, args
+  end
+    
+  def self.info(*args)
+    log :info, args
+  end
+    
+  def self.debug(*args)
+    log :debug, args
+  end
+  
+  module Nolog
+    extend self
+  
+    def error(*args); args.first; end
+    def warn(*args); args.first; end
+    def info(*args); args.first; end
+    def debug(*args); args.first; end
+  end
 end
 
 class Object
-  def rlog(*args)
-    return if Dlog.quiet?
-    Dlog.log self, args
+  def dlog(*args)
+    quiet = Dlog.quiet? || Dlog.release?
+    
+    if args.empty?
+      quiet ? Dlog::Nolog : Dlog
+    else
+      Dlog.log :info, args unless quiet
+      args.first
+    end 
   end
   
-  def dlog(*args)
-    return if Dlog.quiet? || Dlog.release?
-    Dlog.log self, args
+  def rlog(*args)
+    quiet = Dlog.quiet? || Dlog.release?
+    
+    if args.empty?
+      quiet ? Dlog::Nolog : Dlog
+    else
+      Dlog.log :warn, args unless quiet
+      args.first
+    end 
   end
   
   def benchmark(*args, &block)
@@ -159,10 +222,8 @@ class Object
     
     start = Time.now
     r = yield
-    
     args.push ": %3d msecs" % (1000 * (Time.now - start))
-    Dlog.log self, args, :source => caller[0]
-    rlog *args
+    Dlog.log :warn, args
     r
   rescue
     args.push ": exception raised after #{"%3d msecs" % (1000 * (Time.now - start)) }"
