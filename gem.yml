@@ -1,4 +1,4 @@
-version: "0.2"
+version: "0.2.1"
 summary: "{d,r}log"
 description: |
   A logging library mainly for development purposes.

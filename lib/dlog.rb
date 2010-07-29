@@ -190,6 +190,48 @@ module Dlog
     def info(*args); args.first; end
     def debug(*args); args.first; end
   end
+  
+  module NoBenchmark
+    extend self
+    
+    def error(*args, &block); yield; end
+    def warn(*args, &block); yield; end
+    def info(*args, &block); yield; end
+    def debug(*args, &block); yield; end
+  end
+  
+  module Benchmark
+    extend self
+    
+    def benchmark(severity, args, &block)
+      args.push "#{args.pop}:" if args.last.is_a?(String)
+
+      start = Time.now
+      r = yield
+
+      args.push "%d msecs" % (1000 * (Time.now - start))
+      Dlog.log severity, args, 2
+      r
+    rescue
+      args.push "exception raised after #{"%d msecs" % (1000 * (Time.now - start)) }"
+      Dlog.log severity, args, 2
+      raise
+    end
+    
+    def error(*args, &block)
+      benchmark :error, args, &block
+    end
+
+    def warn(*args, &block)
+      benchmark :warn, args, &block
+    end
+    def info(*args, &block)
+      benchmark :info, args, &block
+    end
+    def debug(*args, &block)
+      benchmark :debug, args, &block
+    end
+  end
 end
 
 class Object
@@ -200,36 +242,29 @@ class Object
       quiet ? Dlog::Nolog : Dlog
     else
       Dlog.log :info, args unless quiet
-      args.first
+      args.last
     end 
   end
   
   def rlog(*args)
-    quiet = Dlog.quiet? || Dlog.release?
+    quiet = Dlog.quiet?
     
     if args.empty?
       quiet ? Dlog::Nolog : Dlog
     else
       Dlog.log :warn, args unless quiet
-      args.first
+      args.last
     end 
   end
   
   def benchmark(*args, &block)
     if Dlog.quiet?
-      return yield
+      Dlog::NoBenchmark
+    elsif args.empty? && !block_given?
+      Dlog::Benchmark 
+    else
+      Dlog::Benchmark.benchmark :info, args, &block
     end
-    
-    start = Time.now
-    r = yield
-    args.push ": %3d msecs" % (1000 * (Time.now - start))
-    Dlog.log :warn, args
-    r
-  rescue
-    args.push ": exception raised after #{"%3d msecs" % (1000 * (Time.now - start)) }"
-    args.push :source => caller[0]
-    rlog *args
-    raise
   end
   
   private
