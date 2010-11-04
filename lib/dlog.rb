@@ -232,6 +232,30 @@ module Dlog
       benchmark :debug, args, &block
     end
   end
+
+  module Benchslow
+    include Benchmark
+    extend self
+    
+    def benchmark(severity, args, &block)
+      args.push "#{args.pop}:" if args.last.is_a?(String)
+
+      start = Time.now
+      r = yield
+
+      timespan = Time.now - start
+      if timespan > 1
+        args.push "%d msecs" % (1000 * timespan)
+        Dlog.log severity, args, 2
+      end
+
+      r
+    rescue
+      args.push "exception raised after #{"%d msecs" % (1000 * (Time.now - start)) }"
+      Dlog.log severity, args, 2
+      raise
+    end
+  end
 end
 
 class Object
@@ -264,6 +288,16 @@ class Object
       Dlog::Benchmark 
     else
       Dlog::Benchmark.benchmark :info, args, &block
+    end
+  end
+  
+  def benchslow(*args, &block)
+    if Dlog.quiet?
+      Dlog::NoBenchmark
+    elsif args.empty? && !block_given?
+      Dlog::Benchslow 
+    else
+      Dlog::Benchslow.benchmark :info, args, &block
     end
   end
   

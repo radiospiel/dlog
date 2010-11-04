@@ -1,5 +1,5 @@
-version: "0.2.1"
-summary: "{d,r}log"
+version: "0.2.3"
+summary: "{d,r,s}log"
 description: |
   A logging library mainly for development purposes.
 homepage: http://github.com/pboy/dlog  
