@@ -20,7 +20,7 @@ TXT
   
   task :install => :build do
     file = Dir.glob("pkg/*.gem").sort.last
-    sys "sudo gem install #{file}"
+    sys "gem install #{file}"
   end
   
   task :push => :build do
